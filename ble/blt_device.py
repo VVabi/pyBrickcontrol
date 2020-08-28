@@ -20,13 +20,10 @@ class BrickBLEDevice(gatt.Device):
         print("resolved")
 	
     def characteristic_value_updated(self, characteristic, value):
-        print("Notifications")
-        for b in value:
-        	print(b)
-
-        if (value[2] == 130 and value[4] > 8): #TODO
-            print("releasing")    
-            self.waiting = False
+        #print("Notifications")
+        #for b in value:
+        #	print(b)
+        pass
 
     def prepare(self):
         self.characteristic_handlers.clear()
@@ -40,15 +37,15 @@ class BrickBLEDevice(gatt.Device):
         lego_characteristic.enable_notifications()
         self.characteristic_handlers.append(lego_characteristic)
 
-                    	 	
+    
+    def characteristic_write_value_succeeded(self, characteristic):
+        self.waiting = False
+
     def write_value(self, cmd):
         if not self.characteristic_handlers:
             print("No characteristic to write to found, please call prepare first!")
             return
-        print("Sending cmd")
-        self.characteristic_handlers[0].write_value(cmd)
         self.waiting = True
-
-        while self.waiting:
-            pass
+        self.characteristic_handlers[0].write_value(cmd)
+        
 
