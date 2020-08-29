@@ -1,8 +1,9 @@
 import gatt
+import time
+import threading
 
 class BrickBLEDevice(gatt.Device):
     characteristic_handlers = list()
-    waiting                 = False
     def connect_succeeded(self):
         super().connect_succeeded()
         print("[%s] Connected" % (self.mac_address))
@@ -20,9 +21,7 @@ class BrickBLEDevice(gatt.Device):
         print("resolved")
 	
     def characteristic_value_updated(self, characteristic, value):
-        #print("Notifications")
-        #for b in value:
-        #	print(b)
+        print(value)
         pass
 
     def prepare(self):
@@ -39,13 +38,24 @@ class BrickBLEDevice(gatt.Device):
 
     
     def characteristic_write_value_succeeded(self, characteristic):
-        self.waiting = False
+        pass
 
     def write_value(self, cmd):
         if not self.characteristic_handlers:
             print("No characteristic to write to found, please call prepare first!")
             return
-        self.waiting = True
         self.characteristic_handlers[0].write_value(cmd)
         
 
+def launch_brick_ble_communication():
+    manager = gatt.DeviceManager(adapter_name='hci0')
+    manager.start_discovery()
+    device = BrickBLEDevice(mac_address='90:84:2B:58:1A:B1', manager=manager)
+    device.connect()
+    print("Connected")
+
+    x = threading.Thread(target=manager.run)
+    x.start()
+    time.sleep(1)
+    device.prepare()
+    return device

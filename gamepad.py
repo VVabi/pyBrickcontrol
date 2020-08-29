@@ -54,7 +54,7 @@ def run_gamepad(host):
         down = blue.get_button(15)
         up   = red.get_button(15)
 
-        tm = (now-last_shift > 1.0)
+        tm = (now-last_shift > 0.5)
 
         if down > 0 and gear > 1 and tm:
             time.sleep(0.2)
