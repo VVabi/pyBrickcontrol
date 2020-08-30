@@ -1,3 +1,5 @@
+from .cmd_types import cmd_type
+
 class set_motor_pwm:
 
     def __init__(self, desired_pwm, port):
@@ -17,7 +19,7 @@ class set_motor_pwm:
 
 
     def get_cmd_id(self):
-        return 0x81
+        return cmd_type.PORT_OUTPUT_COMMAND
 
 class motor_move_by_degrees:
     def __init__(self, angle, speed, max_power, port):
@@ -35,19 +37,19 @@ class motor_move_by_degrees:
         return payload
 
     def get_cmd_id(self):
-        return 0x81
+        return cmd_type.PORT_OUTPUT_COMMAND
 
 class motor_go_to_position:
 
     def __init__(self, desired_pwm, max_power, port, target_angle):
-        self.pwm = desired_pwm
-        self.pwm = min(100, self.pwm)
-        self.pwm = max(-100, self.pwm)
-        self.port = port
-        self.max_power = max_power
-        self.max_power = min(100, self.max_power)
-        self.max_power = max(0, self.max_power)
-        self.target_angle = target_angle
+        self.pwm            = desired_pwm
+        self.pwm            = min(100, self.pwm)
+        self.pwm            = max(-100, self.pwm)
+        self.port           = port
+        self.max_power      = max_power
+        self.max_power      = min(100, self.max_power)
+        self.max_power      = max(0, self.max_power)
+        self.target_angle   = target_angle
 
     def serialize(self):
             pwm_as_byte = self.pwm
@@ -60,7 +62,7 @@ class motor_go_to_position:
 
 
     def get_cmd_id(self):
-        return 0x81
+        return cmd_type.PORT_OUTPUT_COMMAND
 
 class request_battery_update:
     def serialize(self):
@@ -68,12 +70,26 @@ class request_battery_update:
         return payload
 
     def get_cmd_id(self):
-        return 0x01
+        return cmd_type.HUB_PROPERTIES
 
+class enable_mode_updates:
+    def __init__(self, port, mode, notifications_enabled, delta):
+        self.port = port
+        self.mode = mode
+        self.notifications_enabled = notifications_enabled
+        self.delta = delta
+    
+    def serialize(self):
+            sub = self.delta.to_bytes(4, 'little', signed = True)
+            payload = bytes([self.port, self.mode, sub[0], sub[1], sub[2], sub[3], self.notifications_enabled])
+            return payload
 
+    def get_cmd_id(self):
+        return cmd_type.PORT_VALUE
+  
 class brick_cmd:
     def __init__(self, subcommand):
-        self.id = subcommand.get_cmd_id()
+        self.id = subcommand.get_cmd_id().value
         self.subcommand = subcommand
 
     def serialize(self):

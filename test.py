@@ -5,6 +5,8 @@ import threading
 from mqtt_connection.mqtt_brick_client import *
 import gamepad
 
+
+
 device = launch_brick_ble_communication()
 client = mqtt_brick_client("localhost")
 

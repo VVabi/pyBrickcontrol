@@ -12,13 +12,12 @@ def foo():
 def run_gamepad(host):
     client = mqtt.Client()
     client.connect(host)
-
+    client.loop_start()
     time.sleep(1) #TODO
     pygame.init()
     pygame.display.init()
     # Initialize the joysticks
     pygame.joystick.init()
-    done = False
 
     joystick_count = pygame.joystick.get_count()
     print ("There is ", joystick_count, "joystick/s")
@@ -47,13 +46,11 @@ def run_gamepad(host):
     shift_angles = [0, -90, -180, -270]
 
     old_turn = 0
-    last_turn_change_ts = 0
+    old_forward = 0
     while 1:
         now = time.time()
-
         down = blue.get_button(15)
         up   = red.get_button(15)
-
         tm = (now-last_shift > 0.5)
 
         if down > 0 and gear > 1 and tm:
@@ -87,31 +84,30 @@ def run_gamepad(host):
 
         forward = -statusblue[0]
 
-        if forward == 0:
-            pwm = 0
-        elif forward == 1:
-            pwm = -100
-        else:
-            pwm = 100
-        cmd = dict()
-        cmd["port"] = 0
-        cmd["pwm"]  = pwm
-
-        client.publish("brick/motor_pwm", json.dumps(cmd)) 
-        time.sleep(0.02)
+        if forward != old_forward:
+            if forward == 0:
+                pwm = 0
+            elif forward == 1:
+                pwm = -100
+            else:
+                pwm = 100
+            cmd = dict()
+            cmd["port"] = 0
+            cmd["pwm"]  = pwm
+            print("Sending motor pwm")
+            client.publish("brick/motor_pwm", json.dumps(cmd)) 
+            old_forward = forward
 
         turn = statusred[1]
 
-        change = (turn != old_turn) or (now-last_turn_change_ts < 1.0)
+        change = (turn != old_turn)
         if change:
-            if (turn != old_turn):
-                last_turn_change_ts = now
             if turn == 0:
-                angle = 0
+                angle = 13
             elif turn == 1:
-                angle = -70
+                angle = -30
             else:
-                angle = 70
+                angle = 56
             cmd = dict()
             cmd["pwm"]   = 100
             cmd["power"] = 100
@@ -120,4 +116,5 @@ def run_gamepad(host):
             payload = json.dumps(cmd)
 
             client.publish("brick/motor_abs_position", payload)
+            old_turn = turn
         time.sleep(0.02)

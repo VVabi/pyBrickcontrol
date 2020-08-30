@@ -5,6 +5,7 @@ import json
 import time
 from protocol.brick_cmd import *
 import queue
+from protocol.cmd_types import cmd_type
 
 class mqtt_brick_client:
     def __init__(self, host):
@@ -13,9 +14,7 @@ class mqtt_brick_client:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.connect(host)
-
-        T = threading.Thread(target=self.client.loop_forever)
-        T.start()
+        self.client.loop_start()
 
     def on_connect(self, client, userdata, flags, rc):
         self.client.subscribe("brick/motor_pwm")
@@ -32,8 +31,21 @@ class mqtt_brick_client:
     def get_next_message(self):
         return self.json_queue.get()
 
+    def on_property_update(self, value):
+        print("ON UPDATE")
+
+        if (value[3] == 0x06):
+            v = value[5]
+            response = dict()
+            response["battery_charging_state"] = v
+            self.client.publish("brick/properties/battery", json.dumps(response))
+
     def run(self, hub_device):
+        hub_device.register_cb(cmd_type.HUB_PROPERTIES, self.on_property_update)
         while True:
+            while (self.json_queue.qsize() > 10):
+                self.get_next_message()
+
             msg = self.get_next_message()
             if msg['topic'] == "brick/motor_abs_position":
                 payload = msg['payload']
@@ -46,5 +58,4 @@ class mqtt_brick_client:
             elif msg['topic'] == "brick/read_battery":
                 print("Received battery cmd")
                 cmd = brick_cmd(request_battery_update())
-                print(cmd.serialize())
                 hub_device.write_value(cmd.serialize())  
